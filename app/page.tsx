@@ -16,13 +16,28 @@ type Alumni = {
   city_country: string | null;
 };
 
+type NewsEvent = {
+  id: string;
+  title: string;
+  type: string;
+  description: string | null;
+  cover_image: string | null;
+  event_date: string | null;
+  venue: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export default function Home() {
   const [alumni, setAlumni] = useState<Alumni[]>([]);
+  const [newsEvents, setNewsEvents] = useState<NewsEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   useEffect(() => {
     async function loadAlumni() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("Alumni-profiles")
         .select(
           "id, full_name, profile_photo, profession, designation, current_organisation, batch, session, city_country"
@@ -30,26 +45,69 @@ export default function Home() {
         .eq("status", "approved")
         .order("created_at", { ascending: false });
 
-      if (data) {
+      if (!error && data) {
         setAlumni(data);
+      } else if (error) {
+        console.error("Alumni loading error:", error);
       }
 
       setLoading(false);
     }
 
+    async function loadNewsEvents() {
+      const { data, error } = await supabase
+        .from("news_events")
+        .select(
+          "id, title, type, description, cover_image, event_date, venue, status, created_at, updated_at"
+        )
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (!error && data) {
+        console.log("News & Events:", data);
+        setNewsEvents(data);
+      } else if (error) {
+        console.error("News & Events loading error:", error);
+      }
+
+      setNewsLoading(false);
+    }
+
     loadAlumni();
+    loadNewsEvents();
   }, []);
 
   const totalMembers = alumni.length;
 
+  function formatDate(dateValue: string | null) {
+    if (!dateValue) return "";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateValue;
+    }
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      {/* ================= NAVBAR ================= */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <main className="min-h-screen bg-white">
+      {/* =========================================================
+          NAVBAR
+      ========================================================= */}
+
+      <nav className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-sm font-black tracking-tight text-white shadow-lg">
+
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white shadow-lg">
               CoU
             </div>
 
@@ -57,13 +115,15 @@ export default function Home() {
               <div className="text-xl font-black tracking-tight text-slate-950">
                 CoUCAA
               </div>
+
               <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Chemistry Alumni Association
               </div>
             </div>
           </Link>
 
-          {/* Desktop navigation */}
+          {/* Desktop Navigation */}
+
           <div className="hidden items-center gap-8 md:flex">
             <Link
               href="/"
@@ -93,11 +153,13 @@ export default function Home() {
               Messages
             </a>
 
+            {/* Admin Login */}
+
             <Link
               href="/login"
               className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-800 transition hover:border-slate-950 hover:bg-slate-950 hover:text-white"
             >
-              Alumni Login
+              Admin Login
             </Link>
 
             <Link
@@ -110,12 +172,16 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ================= HERO ================= */}
+      {/* =========================================================
+          HERO
+      ========================================================= */}
+
       <section className="relative overflow-hidden bg-slate-950">
-        {/* subtle background */}
         <div className="absolute inset-0">
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-blue-600/20 blur-3xl" />
+
           <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+
           <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.4)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.4)_1px,transparent_1px)] [background-size:50px_50px]" />
         </div>
 
@@ -155,11 +221,14 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Hero Stats */}
+
           <div className="mt-16 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
               <p className="text-3xl font-black text-white">
                 {loading ? "—" : totalMembers}
               </p>
+
               <p className="mt-1 text-sm font-medium text-slate-400">
                 Total Members
               </p>
@@ -167,6 +236,7 @@ export default function Home() {
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
               <p className="text-3xl font-black text-white">01</p>
+
               <p className="mt-1 text-sm font-medium text-slate-400">
                 Academic Department
               </p>
@@ -174,6 +244,7 @@ export default function Home() {
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
               <p className="text-3xl font-black text-white">2026</p>
+
               <p className="mt-1 text-sm font-medium text-slate-400">
                 Association Established
               </p>
@@ -182,31 +253,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= STATS ================= */}
+      {/* =========================================================
+          STATS
+      ========================================================= */}
+
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-slate-200 px-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:px-8">
           <div className="px-4 py-8 text-center sm:text-left">
             <p className="text-4xl font-black tracking-tight text-slate-950">
               {loading ? "—" : totalMembers}
             </p>
+
             <p className="mt-2 text-sm font-semibold text-slate-500">
               Total Members
             </p>
           </div>
 
-          <div className="px-4 py-8 text-center sm:text-left sm:pl-8">
+          <div className="px-4 py-8 text-center sm:pl-8 sm:text-left">
             <p className="text-lg font-black text-slate-950">
               Department of Chemistry
             </p>
+
             <p className="mt-2 text-sm font-semibold text-slate-500">
               Comilla University
             </p>
           </div>
 
-          <div className="px-4 py-8 text-center sm:text-left sm:pl-8">
+          <div className="px-4 py-8 text-center sm:pl-8 sm:text-left">
             <p className="text-lg font-black text-slate-950">
               Comilla University
             </p>
+
             <p className="mt-2 text-sm font-semibold text-slate-500">
               Cumilla, Bangladesh
             </p>
@@ -214,7 +291,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= ABOUT ================= */}
+      {/* =========================================================
+          ABOUT
+      ========================================================= */}
+
       <section id="about" className="bg-slate-50 py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="grid gap-14 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
@@ -251,9 +331,9 @@ export default function Home() {
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-2xl">🤝</p>
-                  <h3 className="mt-4 font-bold text-slate-950">
-                    Connect
-                  </h3>
+
+                  <h3 className="mt-4 font-bold text-slate-950">Connect</h3>
+
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     Stay connected with fellow chemistry alumni.
                   </p>
@@ -261,9 +341,9 @@ export default function Home() {
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-2xl">🎓</p>
-                  <h3 className="mt-4 font-bold text-slate-950">
-                    Mentor
-                  </h3>
+
+                  <h3 className="mt-4 font-bold text-slate-950">Mentor</h3>
+
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     Share knowledge and guide the next generation.
                   </p>
@@ -271,9 +351,9 @@ export default function Home() {
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-2xl">🚀</p>
-                  <h3 className="mt-4 font-bold text-slate-950">
-                    Grow
-                  </h3>
+
+                  <h3 className="mt-4 font-bold text-slate-950">Grow</h3>
+
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     Build opportunities through collaboration.
                   </p>
@@ -284,8 +364,141 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= RECENT ALUMNI ================= */}
+      {/* =========================================================
+          NEWS & EVENTS
+      ========================================================= */}
+
       <section className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-blue-600">
+                Stay Updated
+              </p>
+
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                News & Events
+              </h2>
+
+              <p className="mt-3 max-w-xl text-slate-500">
+                Stay informed about upcoming events, activities and
+                announcements from CoUCAA.
+              </p>
+            </div>
+          </div>
+
+          {/* Loading */}
+
+          {newsLoading ? (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="h-[430px] animate-pulse rounded-3xl bg-slate-100"
+                />
+              ))}
+            </div>
+          ) : newsEvents.length === 0 ? (
+            /* Empty State */
+
+            <div className="mt-10 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+              <div className="text-4xl">📰</div>
+
+              <p className="mt-4 font-bold text-slate-700">
+                No news or events published yet.
+              </p>
+
+              <p className="mt-2 text-sm text-slate-500">
+                New announcements and events will appear here.
+              </p>
+            </div>
+          ) : (
+            /* News/Event Cards */
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {newsEvents.map((item) => (
+                <article
+                  key={item.id}
+                  className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  {/* ================= COVER IMAGE ================= */}
+
+                  <div className="relative h-56 overflow-hidden bg-slate-100">
+                    {item.cover_image ? (
+                      <img
+                        src={item.cover_image}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-950 to-blue-900">
+                        <div className="text-center text-white">
+                          <div className="text-4xl">📰</div>
+
+                          <p className="mt-2 text-sm font-bold">CoUCAA</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Type Badge */}
+
+                    <div className="absolute left-4 top-4">
+                      <span className="rounded-full bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-700 shadow-sm">
+                        {item.type}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ================= CARD CONTENT ================= */}
+
+                  <div className="p-6">
+                    <h3 className="line-clamp-2 text-xl font-black text-slate-950">
+                      {item.title}
+                    </h3>
+
+                    {item.description && (
+                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-500">
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-5 space-y-2">
+                      {/* Date */}
+
+                      {item.event_date && (
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                          <span>📅</span>
+
+                          <span>{formatDate(item.event_date)}</span>
+                        </div>
+                      )}
+
+                      {/* Venue */}
+
+                      {item.venue && (
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                          <span>📍</span>
+
+                          <span className="truncate">{item.venue}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* =========================================================
+          RECENT ALUMNI
+      ========================================================= */}
+
+      <section className="bg-slate-50 py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
             <div>
@@ -316,12 +529,12 @@ export default function Home() {
               {[1, 2, 3, 4].map((item) => (
                 <div
                   key={item}
-                  className="h-72 animate-pulse rounded-3xl bg-slate-100"
+                  className="h-72 animate-pulse rounded-3xl bg-white"
                 />
               ))}
             </div>
           ) : alumni.length === 0 ? (
-            <div className="mt-10 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
+            <div className="mt-10 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
               <p className="font-bold text-slate-700">
                 No approved alumni yet.
               </p>
@@ -345,6 +558,8 @@ export default function Home() {
                   key={person.id}
                   className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
+                  {/* Alumni Photo */}
+
                   <div className="flex h-48 items-center justify-center overflow-hidden bg-slate-100">
                     {person.profile_photo ? (
                       <img
@@ -375,7 +590,10 @@ export default function Home() {
                     </p>
 
                     <div className="mt-4 flex items-center justify-between text-xs font-semibold text-slate-400">
-                      <span>{person.batch || person.session || "Alumni"}</span>
+                      <span>
+                        {person.batch || person.session || "Alumni"}
+                      </span>
+
                       <span>View →</span>
                     </div>
                   </div>
@@ -386,7 +604,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= MESSAGES ================= */}
+      {/* =========================================================
+          MESSAGES
+      ========================================================= */}
+
       <section id="messages" className="bg-slate-950 py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="max-w-2xl">
@@ -406,6 +627,7 @@ export default function Home() {
 
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
             {/* Department Head */}
+
             <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-7">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-lg font-black text-white">
@@ -413,9 +635,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-white">
-                    Department Head
-                  </h3>
+                  <h3 className="font-bold text-white">Department Head</h3>
 
                   <p className="text-sm text-slate-400">
                     Department of Chemistry
@@ -436,6 +656,7 @@ export default function Home() {
             </div>
 
             {/* President */}
+
             <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-7">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-lg font-black text-white">
@@ -443,13 +664,9 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-white">
-                    President
-                  </h3>
+                  <h3 className="font-bold text-white">President</h3>
 
-                  <p className="text-sm text-slate-400">
-                    CoUCAA
-                  </p>
+                  <p className="text-sm text-slate-400">CoUCAA</p>
                 </div>
               </div>
 
@@ -465,6 +682,7 @@ export default function Home() {
             </div>
 
             {/* Secretary */}
+
             <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-7">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-lg font-black text-white">
@@ -472,13 +690,9 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-white">
-                    Secretary
-                  </h3>
+                  <h3 className="font-bold text-white">Secretary</h3>
 
-                  <p className="text-sm text-slate-400">
-                    CoUCAA
-                  </p>
+                  <p className="text-sm text-slate-400">CoUCAA</p>
                 </div>
               </div>
 
@@ -496,7 +710,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= WHY COUCAA ================= */}
+      {/* =========================================================
+          WHY COUCAA
+      ========================================================= */}
+
       <section className="bg-white py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
@@ -519,7 +736,9 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-3xl bg-slate-50 p-6">
                 <div className="text-2xl">🌐</div>
+
                 <h3 className="mt-5 font-black">Professional Network</h3>
+
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Discover and connect with alumni working across different
                   industries and professions.
@@ -528,7 +747,9 @@ export default function Home() {
 
               <div className="rounded-3xl bg-slate-50 p-6">
                 <div className="text-2xl">🧪</div>
+
                 <h3 className="mt-5 font-black">Research & Academia</h3>
+
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Encourage research collaboration and academic exchange.
                 </p>
@@ -536,7 +757,9 @@ export default function Home() {
 
               <div className="rounded-3xl bg-slate-50 p-6">
                 <div className="text-2xl">💡</div>
+
                 <h3 className="mt-5 font-black">Mentorship</h3>
+
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Help students and young graduates learn from real-world
                   experience.
@@ -545,7 +768,9 @@ export default function Home() {
 
               <div className="rounded-3xl bg-slate-50 p-6">
                 <div className="text-2xl">❤️</div>
+
                 <h3 className="mt-5 font-black">Give Back</h3>
+
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Stay connected with the department and contribute to its
                   future.
@@ -556,7 +781,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= CTA ================= */}
+      {/* =========================================================
+          CTA
+      ========================================================= */}
+
       <section className="px-5 pb-24 lg:px-8">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-blue-600 px-7 py-16 text-center shadow-2xl sm:px-12">
           <p className="text-sm font-black uppercase tracking-[0.2em] text-blue-100">
@@ -581,13 +809,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= FOOTER ================= */}
+      {/* =========================================================
+          FOOTER
+      ========================================================= */}
+
       <footer className="border-t border-slate-200 bg-slate-50">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-10 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
-            <div className="text-xl font-black text-slate-950">
-              CoUCAA
-            </div>
+            <div className="text-xl font-black text-slate-950">CoUCAA</div>
 
             <p className="mt-1 text-sm text-slate-500">
               Comilla University Chemistry Alumni Association
